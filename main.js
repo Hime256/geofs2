@@ -22,7 +22,66 @@ document.querySelectorAll('[data-aircraft]').forEach(function(e){
 	    e.innerHTML = '<li data-aircraft="10"><img src="images/planes/a380.png">Airbus A380-800<div data-aircraft="10" data-livery="0"><img src="images/planes/a380_0.png">Emirates</div><div data-aircraft="10" data-livery="1"><img src="images/planes/a380_1.png">Air France</div><div data-aircraft="10" data-livery="2"><img src="images/planes/a380_2.png">Qantas</div></li>';
 	 }
 });
-	
+
+geofs.aircraft.instance.animationValue.spoilerArming = 0
+
+controls.setters.setSpoilerArming = {
+    label: "Spoiler Arming",
+    set: function () {
+        if (!geofs.aircraft.instance.groundContact && controls.airbrakes.position === 0){
+        geofs.aircraft.instance.animationValue.spoilerArming = 1
+        }
+    },
+};
+
+controls.setters.setAirbrakes= {
+    label: "Air Brakes",
+    set: function () {
+        controls.airbrakes.target = 0 == controls.airbrakes.target ? 1 : 0;
+        controls.setPartAnimationDelta(controls.airbrakes);
+        geofs.aircraft.instance.animationValue.spoilerArming = 0
+    },
+}
+
+instruments.definitions.spoilers.overlay.overlays[3] = {
+    anchor: { x: 0, y: 0 },
+    size: { x: 50, y: 50 },
+    position: { x: 0, y: 0 },
+    animations: [{ type: "show", value: "spoilerArming", when: [1] }],
+    class: "control-pad-dyn-label green-pad",
+    text: "SPLR<br/>ARM",
+    drawOrder: 1
+};
+
+instruments.init(geofs.aircraft.instance.setup.instruments)
+
+$(document).keydown(
+    function (e) {
+        if (e.which == 90){ //spoiler arming key is "z"
+            controls.setters.setSpoilerArming.set()
+        }
+    }
+)
+
+setInterval(
+    function(){
+        if(geofs.aircraft.instance.animationValue.spoilerArming === 1 && geofs.aircraft.instance.groundContact && controls.airbrakes.position === 0){
+            controls.setters.setAirbrakes.set();
+            geofs.aircraft.instance.animationValue.spoilerArming = 0;
+        }
+    },
+100)
+
+//add spoiler indicator for those planes that do not have it by themselves
+setInterval(
+    function(){
+        if(["3292", "3054"].includes(geofs.aircraft.instance.id) && geofs.aircraft.instance.setup.instruments["spoilers"] === undefined){
+            geofs.aircraft.instance.setup.instruments["spoilers"] = "";
+            instruments.init(geofs.aircraft.instance.setup.instruments);
+        }
+    },
+500)
+
 function gBreath() {
    if (geofs.animation.values.loadFactor >= 3) {
 audio.impl.html5.playFile("https://142420819-645052386429616373.preview.editmysite.com/uploads/1/4/2/4/142420819/cutgbreath.mp3")
